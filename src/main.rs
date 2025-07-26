@@ -1,12 +1,12 @@
 use adapter::*;
 use args::Commands;
 use clap::Parser;
+use human_size::{SpecificSize, multiples::*};
 use jiff::Timestamp;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::process::Command;
 use std::sync::Arc;
-use human_size::{SpecificSize, multiples::*};
 use trustfall::execute_query;
 
 mod adapter;
@@ -18,8 +18,6 @@ pub use images::*;
 
 fn main() {
     let args = args::Cli::parse();
-
-    println!("{:?}", args);
 
     let filter = args.command.filter();
 
@@ -66,23 +64,65 @@ fn main() {
 
     query_str.push_str("}}");
     let adapter = Arc::new(Adapter::new());
-    let args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
+    let query_args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
 
-    let vertices = execute_query(Adapter::schema(), adapter, &query_str, args).unwrap();
-    let mut images = vertices.map(|x| (format!("{}:{}", x["repo"].as_str().unwrap(), x["tag"].as_str().unwrap()), x["size"].as_u64().unwrap())).collect::<Vec<_>>();
-    let max_name_len = images.iter().map(|(name, _)| name.len()).max().unwrap_or_default();
+    let vertices = execute_query(Adapter::schema(), adapter, &query_str, query_args).unwrap();
+    let mut images = vertices
+        .map(|x| {
+            (
+                format!(
+                    "{}:{}",
+                    x["repo"].as_str().unwrap(),
+                    x["tag"].as_str().unwrap()
+                ),
+                x["size"].as_u64().unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let max_name_len = images
+        .iter()
+        .map(|(name, _)| name.len())
+        .max()
+        .unwrap_or_default();
 
     if filter.sort {
         images.sort_by(|(_, a), (_, b)| b.cmp(a));
     }
 
-    for (image, size) in &images{
+    match args.command {
+        Commands::Ls(_) => {
+            list_images(images, max_name_len);
+        }
+        Commands::Size(_) => {
+            let s: usize = images.iter().map(|(_, s)| *s as usize).sum();
+            let human_size = SpecificSize::new(s as f64, Byte).unwrap();
+            let size = if s > 1_000_000_000 {
+                let s: SpecificSize<Gigabyte> = human_size.into();
+                s.to_string()
+            } else {
+                let s: SpecificSize<Megabyte> = human_size.into();
+                s.to_string()
+            };
+            println!("{} images totalling {}", images.len(), size);
+        }
+        Commands::Rm(_) => {
+            if filter.dry_run {
+                list_images(images, max_name_len);
+            } else {
+                todo!()
+            }
+        }
+    }
+}
+
+fn list_images(images: Vec<(String, u64)>, max_name_len: usize) {
+    for (image, size) in &images {
         let human_size = SpecificSize::new(*size as f64, Byte).unwrap();
         let size = if *size > 1_000_000_000 {
-            let s: SpecificSize::<Gigabyte> = human_size.into();
+            let s: SpecificSize<Gigabyte> = human_size.into();
             s.to_string()
         } else {
-            let s: SpecificSize::<Megabyte> = human_size.into();
+            let s: SpecificSize<Megabyte> = human_size.into();
             s.to_string()
         };
         let padding = " ".repeat(max_name_len - image.len());
