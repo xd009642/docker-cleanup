@@ -128,10 +128,15 @@ mod image {
         _resolve_info: &ResolveEdgeInfo,
     ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, Vertex>> {
         resolve_neighbors_with(contexts, move |vertex| {
-            let vertex = vertex
+            let image = vertex
                 .as_image()
                 .expect("conversion failed, vertex was not a Image");
-            todo!("get neighbors along edge 'size_in_range' for type 'Image'")
+            let size = image.size as i64;
+            if (min..max).contains(&size) {
+                Box::new(std::iter::once(vertex.clone()))
+            } else {
+                Box::new(std::iter::empty())
+            }
         })
     }
 }

@@ -1,80 +1,84 @@
+use adapter::*;
+use args::Commands;
+use clap::Parser;
 use jiff::Timestamp;
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::process::Command;
 use std::sync::Arc;
-use std::time::Instant;
 use trustfall::execute_query;
 
 mod adapter;
+mod args;
+pub mod images;
+pub mod podman;
 
-pub mod podman {
-    use super::*;
+pub use images::*;
 
-    #[derive(Debug, Clone, Eq, Hash, PartialEq, Ord, PartialOrd, Deserialize)]
-    #[serde(rename_all = "PascalCase")]
-    pub struct Image {
-        pub id: String,
-        pub parent_id: String,
-        pub size: usize,
-        pub history: Vec<String>,
-        #[serde(default)]
-        pub names: Vec<String>,
-        pub created: usize,
-        pub created_at: Timestamp,
+fn main() {
+    let args = args::Cli::parse();
+
+    println!("{:?}", args);
+
+    let filter = args.command.filter();
+
+    let mut closing_brackets = 0;
+    let mut query_str = "{Image{".to_string();
+
+    if let Some(created_before) = filter.created_before {
+        query_str.push_str(&format!(
+            "created_before(timestamp: \"{}\") {{",
+            created_before
+        ));
+        closing_brackets += 1;
     }
-}
 
-#[derive(Deserialize)]
-#[serde(untagged)]
-pub enum ImageOutput {
-    Podman(podman::Image),
-}
+    if let Some(created_before) = filter.created_after {
+        query_str.push_str(&format!(
+            "created_after(timestamp: \"{}\") {{",
+            created_before
+        ));
+        closing_brackets += 1;
+    }
 
-#[derive(Debug, Clone, Eq, Hash, PartialEq, Ord, PartialOrd)]
-pub struct Image {
-    pub repository: String,
-    pub tag: String,
-    pub size: usize,
-    pub created_at: Timestamp,
-}
-
-impl From<ImageOutput> for Image {
-    fn from(x: ImageOutput) -> Self {
-        match x {
-            ImageOutput::Podman(p) => p.into(),
+    match (filter.smaller_than, filter.larger_than) {
+        (Some(lt), Some(gt)) => {
+            query_str.push_str(&format!("size_in_range(max: {}, min: {}) {{", lt, gt));
+            closing_brackets += 1;
         }
-    }
-}
-
-impl From<podman::Image> for Image {
-    fn from(img: podman::Image) -> Self {
-        let (repository, tag) = if let Some(s) = img.names.get(0) {
-            let mut parts = s.split(":");
-            let repo = parts.next().unwrap().to_string();
-            let tag = parts.next().unwrap_or_else(|| "latest").to_string();
-            (repo, tag)
-        } else {
-            (img.id.clone(), String::new())
-        };
-        Self {
-            repository,
-            tag,
-            size: img.size,
-            created_at: img.created_at,
+        (Some(lt), None) => {
+            query_str.push_str(&format!("size_in_range(max: {}, min: 0) {{", lt));
+            closing_brackets += 1;
         }
+        (None, Some(gt)) => {
+            query_str.push_str(&format!("size_in_range(max: {}, min: {}) {{", i64::MAX, gt));
+            closing_brackets += 1;
+        }
+        (None, None) => {}
+    }
+
+    query_str.push_str("repo @output\ntag @output\nsize @output\ncreated @output\n");
+
+    for _ in 0..closing_brackets {
+        query_str.push('}');
+    }
+
+    query_str.push_str("}}");
+    let adapter = Arc::new(Adapter::new());
+    let args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
+
+    let vertices = execute_query(Adapter::schema(), adapter, &query_str, args).unwrap();
+    for v in vertices {
+        println!("{:?}", v);
     }
 }
-
-fn main() {}
 
 #[cfg(test)]
 mod tests {
-    use super::adapter::*;
     use super::*;
-    use std::collections::BTreeMap;
 
     #[test]
-    fn can_deserialize_image() {
+    fn can_deserialize_podman_image() {
         let json = r#"
             {
                 "Id": "e9d2252ab371a1149d3ef64b7793a274375dee5d9ec61b9e4fb41d75f156c1a1",
@@ -106,6 +110,14 @@ mod tests {
         let _image: podman::Image = serde_json::from_str(json).unwrap();
         let image: ImageOutput = serde_json::from_str(json).unwrap();
         assert!(matches!(image, ImageOutput::Podman(_)));
+    }
+
+    #[test]
+    #[ignore]
+    fn can_deserialize_docker_image() {
+        let json = r#"{"Containers":"N/A","CreatedAt":"2022-10-25 02:53:28 +0100 BST","CreatedSince":"2 years ago","Digest":"\u003cnone\u003e","ID":"71eaf13299f4","Repository":"ubuntu","SharedSize":"N/A","Size":"63.1MB","Tag":"18.04","UniqueSize":"N/A","VirtualSize":"63.15MB"}"#;
+
+        let image: ImageOutput = serde_json::from_str(json).unwrap();
     }
 
     #[test]
