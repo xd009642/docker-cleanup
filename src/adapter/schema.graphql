@@ -1,0 +1,20 @@
+schema {
+  query: Query
+}
+
+type Query {
+  Image: [Image!]!
+}
+
+type Image {
+  repo: String,
+  tag: String,
+  size: Int!,
+  created: String!
+
+  # Filtering via edges (with parameters)
+  size_in_range(min: Int!, max: Int!): [Image!]!
+  created_after(timestamp: String!): [Image!]!
+  created_before(timestamp: String!): [Image!]!
+  has_name(name: String!): [Image!]!
+}
