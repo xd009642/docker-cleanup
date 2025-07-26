@@ -52,6 +52,9 @@ pub struct FilterOptions {
     /// Doesn't do any operations like RM just lists the images
     #[arg(long)]
     pub dry_run: bool,
+    /// Sort any printouts in order
+    #[arg(long)]
+    pub sort: bool,
 }
 
 fn parse_human_size(input: &str) -> Result<usize, String> {

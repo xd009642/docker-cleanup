@@ -69,7 +69,12 @@ fn main() {
     let args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
 
     let vertices = execute_query(Adapter::schema(), adapter, &query_str, args).unwrap();
-    let images = vertices.map(|x| (format!("{}:{}", x["repo"].as_str().unwrap(), x["tag"].as_str().unwrap()), x["size"].as_u64().unwrap())).collect::<Vec<_>>();
+    let mut images = vertices.map(|x| (format!("{}:{}", x["repo"].as_str().unwrap(), x["tag"].as_str().unwrap()), x["size"].as_u64().unwrap())).collect::<Vec<_>>();
+    let max_name_len = images.iter().map(|(name, _)| name.len()).max().unwrap_or_default();
+
+    if filter.sort {
+        images.sort_by(|(_, a), (_, b)| b.cmp(a));
+    }
 
     for (image, size) in &images{
         let human_size = SpecificSize::new(*size as f64, Byte).unwrap();
@@ -80,7 +85,8 @@ fn main() {
             let s: SpecificSize::<Megabyte> = human_size.into();
             s.to_string()
         };
-        println!("{}\t{}", image, size);
+        let padding = " ".repeat(max_name_len - image.len());
+        println!("{}{}\t{}", image, padding, size);
     }
 }
 
