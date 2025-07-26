@@ -35,20 +35,23 @@ impl Commands {
 #[derive(Parser, Debug)]
 pub struct FilterOptions {
     /// Only include files created before this timestamp
-    #[arg(long = "created-before")]
+    #[arg(long)]
     pub created_before: Option<Timestamp>,
     /// Only include files created after this timestamp
-    #[arg(long = "created-after")]
+    #[arg(long)]
     pub created_after: Option<Timestamp>,
     /// Only include files whose names match this pattern
-    #[arg(long = "name-matches")]
+    #[arg(long)]
     pub name_matches: Option<String>,
     /// Only include files larger than this size in bytes
-    #[arg(long = "larger-than", value_parser = parse_human_size)]
+    #[arg(long, value_parser = parse_human_size)]
     pub larger_than: Option<usize>,
     /// Only include files smaller than this size in bytes
-    #[arg(long = "smaller-than", value_parser = parse_human_size)]
+    #[arg(long, value_parser = parse_human_size)]
     pub smaller_than: Option<usize>,
+    /// Doesn't do any operations like RM just lists the images
+    #[arg(long)]
+    pub dry_run: bool,
 }
 
 fn parse_human_size(input: &str) -> Result<usize, String> {

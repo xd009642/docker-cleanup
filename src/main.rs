@@ -6,6 +6,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::process::Command;
 use std::sync::Arc;
+use human_size::{SpecificSize, multiples::*};
 use trustfall::execute_query;
 
 mod adapter;
@@ -68,8 +69,18 @@ fn main() {
     let args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
 
     let vertices = execute_query(Adapter::schema(), adapter, &query_str, args).unwrap();
-    for v in vertices {
-        println!("{:?}", v);
+    let images = vertices.map(|x| (format!("{}:{}", x["repo"].as_str().unwrap(), x["tag"].as_str().unwrap()), x["size"].as_u64().unwrap())).collect::<Vec<_>>();
+
+    for (image, size) in &images{
+        let human_size = SpecificSize::new(*size as f64, Byte).unwrap();
+        let size = if *size > 1_000_000_000 {
+            let s: SpecificSize::<Gigabyte> = human_size.into();
+            s.to_string()
+        } else {
+            let s: SpecificSize::<Megabyte> = human_size.into();
+            s.to_string()
+        };
+        println!("{}\t{}", image, size);
     }
 }
 
