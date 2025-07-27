@@ -1,4 +1,5 @@
 use super::vertex::Vertex;
+use regex::Regex;
 use std::sync::Arc;
 use trustfall::provider::{
     AsVertex, ContextIterator, ContextOutcomeIterator, EdgeParameters, ResolveEdgeInfo,
@@ -57,12 +58,14 @@ pub(super) fn resolve_image_edge<'a, V: AsVertex<Vertex> + 'a>(
             image::size_in_range(contexts, min, max, resolve_info)
         }
         "name_matches" => {
-            let regex: Arc<str> = parameters
+            let regex: &str = parameters
                 .get("regex")
                 .expect("failed to find parameter 'regex' for edge 'name_matches' on type 'Image'")
-                .as_arc_str()
+                .as_str()
                 .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'")
                 .clone();
+
+            let regex = Regex::new(regex).unwrap();
             image::name_matches(contexts, regex, resolve_info)
         }
         "name_contains" => {
@@ -166,14 +169,20 @@ mod image {
 
     pub(super) fn name_matches<'a, V: AsVertex<Vertex> + 'a>(
         contexts: ContextIterator<'a, V>,
-        regex: Arc<str>,
+        regex: Regex,
         _resolve_info: &ResolveEdgeInfo,
     ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, Vertex>> {
         resolve_neighbors_with(contexts, move |vertex| {
-            let vertex = vertex
+            let image = vertex
                 .as_image()
                 .expect("conversion failed, vertex was not a Image");
-            todo!("get neighbors along edge 'has_name' for type 'Image'")
+
+            let name = format!("{}:{}", image.repository, image.tag);
+            if regex.is_match(&name) {
+                Box::new(std::iter::once(vertex.clone()))
+            } else {
+                Box::new(std::iter::empty())
+            }
         })
     }
 

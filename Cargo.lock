@@ -153,6 +153,7 @@ dependencies = [
  "clap",
  "human-size",
  "jiff",
+ "regex",
  "serde",
  "serde_json",
  "trustfall",

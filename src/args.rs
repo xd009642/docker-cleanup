@@ -40,9 +40,15 @@ pub struct FilterOptions {
     /// Only include files created after this timestamp
     #[arg(long)]
     pub created_after: Option<Timestamp>,
-    /// Only include files whose names match this pattern
+    /// Only include files whose names match this regex pattern
     #[arg(long)]
     pub name_matches: Option<String>,
+    /// Only include files with the following substring in the name
+    #[arg(long)]
+    pub name_contains: Option<String>,
+    /// Only include files with the following repository name
+    #[arg(long)]
+    pub name: Option<String>,
     /// Only include files larger than this size in bytes
     #[arg(long, value_parser = parse_human_size)]
     pub larger_than: Option<usize>,

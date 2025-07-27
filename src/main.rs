@@ -50,6 +50,18 @@ fn main() {
         (None, None) => {}
     }
 
+    if let Some(contains) = &filter.name_contains {
+        query_str.push_str(&format!("name_contains(substring:\"{}\")\n", contains));
+    }
+
+    if let Some(contains) = &filter.name_matches {
+        query_str.push_str(&format!("name_matches(regex:\"{}\")\n", contains));
+    }
+
+    if let Some(contains) = &filter.name {
+        query_str.push_str(&format!("has_name(name:\"{}\")\n", contains));
+    }
+
     query_str.push_str("repo @output\ntag @output\nsize @output\ncreated @output\n");
 
     query_str.push_str("}}");
