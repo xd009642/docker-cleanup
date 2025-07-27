@@ -1,9 +1,9 @@
+use super::vertex::Vertex;
+use std::sync::Arc;
 use trustfall::provider::{
     AsVertex, ContextIterator, ContextOutcomeIterator, EdgeParameters, ResolveEdgeInfo,
     VertexIterator,
 };
-
-use super::vertex::Vertex;
 
 pub(super) fn resolve_image_edge<'a, V: AsVertex<Vertex> + 'a>(
     contexts: ContextIterator<'a, V>,
@@ -35,11 +35,12 @@ pub(super) fn resolve_image_edge<'a, V: AsVertex<Vertex> + 'a>(
             image::created_before(contexts, timestamp, resolve_info)
         }
         "has_name" => {
-            let name: &str = parameters
+            let name: Arc<str> = parameters
                 .get("name")
                 .expect("failed to find parameter 'name' for edge 'has_name' on type 'Image'")
-                .as_str()
-                .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'");
+                .as_arc_str()
+                .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'")
+                .clone();
             image::has_name(contexts, name, resolve_info)
         }
         "size_in_range" => {
@@ -55,6 +56,24 @@ pub(super) fn resolve_image_edge<'a, V: AsVertex<Vertex> + 'a>(
                 .expect("unexpected null or other incorrect datatype for Trustfall type 'Int!'");
             image::size_in_range(contexts, min, max, resolve_info)
         }
+        "name_matches" => {
+            let regex: Arc<str> = parameters
+                .get("regex")
+                .expect("failed to find parameter 'regex' for edge 'name_matches' on type 'Image'")
+                .as_arc_str()
+                .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'")
+                .clone();
+            image::name_matches(contexts, regex, resolve_info)
+        }
+        "name_contains" => {
+            let substring: Arc<str> = parameters
+                .get("substring")
+                .expect("failed to find parameter 'regex' for edge 'name_matches' on type 'Image'")
+                .as_arc_str()
+                .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'")
+                .clone();
+            image::name_contains(contexts, substring, resolve_info)
+        }
         _ => {
             unreachable!("attempted to resolve unexpected edge '{edge_name}' on type 'Image'")
         }
@@ -62,6 +81,7 @@ pub(super) fn resolve_image_edge<'a, V: AsVertex<Vertex> + 'a>(
 }
 
 mod image {
+    use super::*;
     use jiff::Timestamp;
     use trustfall::provider::{
         AsVertex, ContextIterator, ContextOutcomeIterator, ResolveEdgeInfo, VertexIterator,
@@ -110,7 +130,43 @@ mod image {
 
     pub(super) fn has_name<'a, V: AsVertex<Vertex> + 'a>(
         contexts: ContextIterator<'a, V>,
-        name: &str,
+        name: Arc<str>,
+        _resolve_info: &ResolveEdgeInfo,
+    ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, Vertex>> {
+        resolve_neighbors_with(contexts, move |vertex| {
+            let image = vertex
+                .as_image()
+                .expect("conversion failed, vertex was not a Image");
+            if image.repository == name.as_ref()
+                || format!("{}:{}", image.repository, image.tag) == name.as_ref()
+            {
+                Box::new(std::iter::once(vertex.clone()))
+            } else {
+                Box::new(std::iter::empty())
+            }
+        })
+    }
+
+    pub(super) fn name_contains<'a, V: AsVertex<Vertex> + 'a>(
+        contexts: ContextIterator<'a, V>,
+        substr: Arc<str>,
+        _resolve_info: &ResolveEdgeInfo,
+    ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, Vertex>> {
+        resolve_neighbors_with(contexts, move |vertex| {
+            let image = vertex
+                .as_image()
+                .expect("conversion failed, vertex was not a Image");
+            if image.repository.contains(substr.as_ref()) {
+                Box::new(std::iter::once(vertex.clone()))
+            } else {
+                Box::new(std::iter::empty())
+            }
+        })
+    }
+
+    pub(super) fn name_matches<'a, V: AsVertex<Vertex> + 'a>(
+        contexts: ContextIterator<'a, V>,
+        regex: Arc<str>,
         _resolve_info: &ResolveEdgeInfo,
     ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, Vertex>> {
         resolve_neighbors_with(contexts, move |vertex| {

@@ -17,4 +17,6 @@ type Image {
   created_after(timestamp: String!): [Image!]!
   created_before(timestamp: String!): [Image!]!
   has_name(name: String!): [Image!]!
+  name_matches(regex: String!): [Image!]!
+  name_contains(substring: String!): [Image!]!
 }
