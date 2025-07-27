@@ -21,46 +21,36 @@ fn main() {
 
     let filter = args.command.filter();
 
-    let mut closing_brackets = 0;
     let mut query_str = "{Image{".to_string();
 
     if let Some(created_before) = filter.created_before {
         query_str.push_str(&format!(
-            "created_before(timestamp: \"{}\") {{",
+            "created_before(timestamp: \"{}\")\n",
             created_before
         ));
-        closing_brackets += 1;
     }
 
     if let Some(created_before) = filter.created_after {
         query_str.push_str(&format!(
-            "created_after(timestamp: \"{}\") {{",
+            "created_after(timestamp: \"{}\")\n",
             created_before
         ));
-        closing_brackets += 1;
     }
 
     match (filter.smaller_than, filter.larger_than) {
         (Some(lt), Some(gt)) => {
-            query_str.push_str(&format!("size_in_range(max: {}, min: {}) {{", lt, gt));
-            closing_brackets += 1;
+            query_str.push_str(&format!("size_in_range(max: {}, min: {})\n", lt, gt));
         }
         (Some(lt), None) => {
-            query_str.push_str(&format!("size_in_range(max: {}, min: 0) {{", lt));
-            closing_brackets += 1;
+            query_str.push_str(&format!("size_in_range(max: {}, min: 0)\n", lt));
         }
         (None, Some(gt)) => {
-            query_str.push_str(&format!("size_in_range(max: {}, min: {}) {{", i64::MAX, gt));
-            closing_brackets += 1;
+            query_str.push_str(&format!("size_in_range(max: {}, min: {})\n", i64::MAX, gt));
         }
         (None, None) => {}
     }
 
     query_str.push_str("repo @output\ntag @output\nsize @output\ncreated @output\n");
-
-    for _ in 0..closing_brackets {
-        query_str.push('}');
-    }
 
     query_str.push_str("}}");
     let adapter = Arc::new(Adapter::new());
@@ -200,6 +190,16 @@ mod tests {
                 created @output
               }
             }
+          }
+        }"#;
+        let query = r#"{
+          Image {
+            created_after(timestamp: "2025-06-01 00:00:00+00") 
+              created_before(timestamp: "2025-07-01 00:00:00+00") 
+                repo @output
+                tag @output
+                size @output
+                created @output
           }
         }"#;
 
