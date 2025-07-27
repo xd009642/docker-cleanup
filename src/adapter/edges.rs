@@ -62,8 +62,7 @@ pub(super) fn resolve_image_edge<'a, V: AsVertex<Vertex> + 'a>(
                 .get("regex")
                 .expect("failed to find parameter 'regex' for edge 'name_matches' on type 'Image'")
                 .as_str()
-                .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'")
-                .clone();
+                .expect("unexpected null or other incorrect datatype for Trustfall type 'String!'");
 
             let regex = Regex::new(regex).unwrap();
             image::name_matches(contexts, regex, resolve_info)

@@ -8,4 +8,3 @@ mod vertex;
 mod tests;
 
 pub use adapter_impl::Adapter;
-pub use vertex::Vertex;

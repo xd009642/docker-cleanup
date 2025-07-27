@@ -2,8 +2,6 @@ use adapter::*;
 use args::Commands;
 use clap::Parser;
 use human_size::{SpecificSize, multiples::*};
-use jiff::Timestamp;
-use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::process::Command;
 use std::sync::Arc;
