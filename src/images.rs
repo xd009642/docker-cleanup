@@ -56,7 +56,7 @@ impl From<docker::Image> for Image {
             repository,
             tag,
             hash,
-            created_at: img.created_at.timestamp(),
+            created_at: img.created_at,
             size: img.size.to_bytes() as usize,
         }
     }

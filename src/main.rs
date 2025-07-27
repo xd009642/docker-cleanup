@@ -182,7 +182,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn can_deserialize_docker_image() {
         let json = r#"{"Containers":"N/A","CreatedAt":"2022-10-25 02:53:28 +0100 BST","CreatedSince":"2 years ago","Digest":"\u003cnone\u003e","ID":"71eaf13299f4","Repository":"ubuntu","SharedSize":"N/A","Size":"63.1MB","Tag":"18.04","UniqueSize":"N/A","VirtualSize":"63.15MB"}"#;
         let _image: docker::Image = serde_json::from_str(json).unwrap();
