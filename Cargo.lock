@@ -188,6 +188,9 @@ name = "human-size"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9994b79e8c1a39b3166c63ae7823bb2b00831e2a96a31399c50fe69df408eaeb"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "indexmap"

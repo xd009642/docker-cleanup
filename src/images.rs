@@ -1,4 +1,4 @@
-use crate::podman;
+use crate::{docker, podman};
 use jiff::Timestamp;
 use serde::Deserialize;
 
@@ -6,6 +6,7 @@ use serde::Deserialize;
 #[serde(untagged)]
 pub enum ImageOutput {
     Podman(podman::Image),
+    Docker(docker::Image),
 }
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -21,6 +22,7 @@ impl From<ImageOutput> for Image {
     fn from(x: ImageOutput) -> Self {
         match x {
             ImageOutput::Podman(p) => p.into(),
+            ImageOutput::Docker(d) => d.into(),
         }
     }
 }
@@ -41,6 +43,21 @@ impl From<podman::Image> for Image {
             tag,
             size: img.size,
             created_at: img.created_at,
+        }
+    }
+}
+
+impl From<docker::Image> for Image {
+    fn from(img: docker::Image) -> Self {
+        let repository = img.repository.unwrap_or_default();
+        let tag = img.tag.unwrap_or_default();
+        let hash = img.id;
+        Self {
+            repository,
+            tag,
+            hash,
+            created_at: img.created_at.timestamp(),
+            size: img.size.to_bytes() as usize,
         }
     }
 }
