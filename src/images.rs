@@ -10,6 +10,7 @@ pub enum ImageOutput {
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq, Ord, PartialOrd)]
 pub struct Image {
+    pub hash: String,
     pub repository: String,
     pub tag: String,
     pub size: usize,
@@ -32,9 +33,10 @@ impl From<podman::Image> for Image {
             let tag = parts.next().unwrap_or_else(|| "latest").to_string();
             (repo, tag)
         } else {
-            (img.id.clone(), String::new())
+            (String::new(), String::new())
         };
         Self {
+            hash: img.id,
             repository,
             tag,
             size: img.size,

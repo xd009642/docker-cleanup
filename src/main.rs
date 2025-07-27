@@ -7,7 +7,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::process::Command;
 use std::sync::Arc;
-use trustfall::execute_query;
+use trustfall::{FieldValue, execute_query};
 
 mod adapter;
 mod args;
@@ -68,6 +68,7 @@ fn main() {
 
     let vertices = execute_query(Adapter::schema(), adapter, &query_str, query_args).unwrap();
     let mut images = vertices
+        .filter(|x| x["repo"] != FieldValue::Null)
         .map(|x| {
             (
                 format!(

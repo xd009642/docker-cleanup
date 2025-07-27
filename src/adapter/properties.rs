@@ -20,16 +20,25 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
             Some(v) => unreachable!("Invalid vertex: {:?}", v),
         },
         "repo" => |v: DataContext<V>| match v.active_vertex() {
-            Some(Vertex::Image(img)) => (
-                v.clone(),
-                FieldValue::String(Arc::from(img.repository.as_str())),
-            ),
+            Some(Vertex::Image(img)) => {
+                let value = if img.repository.is_empty() {
+                    FieldValue::Null
+                } else {
+                    FieldValue::String(Arc::from(img.repository.as_str()))
+                };
+                (v.clone(), value)
+            }
             None => (v, FieldValue::Null),
             Some(v) => unreachable!("Invalid vertex: {:?}", v),
         },
         "tag" => |v: DataContext<V>| match v.active_vertex() {
             Some(Vertex::Image(img)) => {
-                (v.clone(), FieldValue::String(Arc::from(img.tag.as_str())))
+                let value = if img.repository.is_empty() {
+                    FieldValue::Null
+                } else {
+                    FieldValue::String(Arc::from(img.tag.as_str()))
+                };
+                (v.clone(), value)
             }
             None => (v, FieldValue::Null),
             Some(v) => unreachable!("Invalid vertex: {:?}", v),
