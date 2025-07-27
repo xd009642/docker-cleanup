@@ -109,7 +109,17 @@ fn main() {
             if filter.dry_run {
                 list_images(images, max_name_len);
             } else {
-                todo!()
+                for (image, _) in &images {
+                    println!("Removing: {}", image);
+                    let o = Command::new("docker")
+                        .args(["image", "rm"])
+                        .arg(image)
+                        .output()
+                        .unwrap();
+                    if !o.status.success() {
+                        println!("{}", String::from_utf8_lossy(&o.stderr));
+                    }
+                }
             }
         }
     }
