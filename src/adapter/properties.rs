@@ -17,7 +17,6 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
                 FieldValue::String(Arc::from(img.created_at.to_string().as_str())),
             ),
             None => (v, FieldValue::Null),
-            Some(v) => unreachable!("Invalid vertex: {:?}", v),
         },
         "repo" => |v: DataContext<V>| match v.active_vertex() {
             Some(Vertex::Image(img)) => {
@@ -29,7 +28,6 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
                 (v.clone(), value)
             }
             None => (v, FieldValue::Null),
-            Some(v) => unreachable!("Invalid vertex: {:?}", v),
         },
         "tag" => |v: DataContext<V>| match v.active_vertex() {
             Some(Vertex::Image(img)) => {
@@ -41,14 +39,11 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
                 (v.clone(), value)
             }
             None => (v, FieldValue::Null),
-            Some(v) => unreachable!("Invalid vertex: {:?}", v),
         },
         "size" => |v: DataContext<V>| match v.active_vertex() {
             Some(Vertex::Image(img)) => (v.clone(), FieldValue::Uint64(img.size as u64)),
             None => (v, FieldValue::Null),
-            Some(v) => unreachable!("Invalid vertex: {:?}", v),
         },
-
         _ => {
             unreachable!("attempted to read unexpected property '{property_name}' on type 'Image'")
         }
