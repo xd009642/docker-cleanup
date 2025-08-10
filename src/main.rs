@@ -36,47 +36,60 @@ fn main() {
         ));
     }
 
-    match (filter.smaller_than, filter.larger_than) {
-        (Some(lt), Some(gt)) => {
-            query_str.push_str(&format!("size_in_range(max: {}, min: {})\n", lt, gt));
-        }
-        (Some(lt), None) => {
-            query_str.push_str(&format!("size_in_range(max: {}, min: 0)\n", lt));
-        }
-        (None, Some(gt)) => {
-            query_str.push_str(&format!("size_in_range(max: {}, min: {})\n", i64::MAX, gt));
-        }
-        (None, None) => {}
+    let mut query_args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
+
+    let mut size_filter = String::new();
+    if let Some(smaller_than) = filter.smaller_than {
+        size_filter.push_str(r#"@filter(op: "<", value: ["$smaller_than"])"#);
+        size_filter.push('\n');
+        query_args.insert(
+            Arc::from("smaller_than".to_string()),
+            FieldValue::Int64(smaller_than as i64),
+        );
+    }
+    if let Some(larger_than) = filter.larger_than {
+        size_filter.push_str(r#"@filter(op: ">", value: ["$larger_than"])"#);
+        size_filter.push('\n');
+        query_args.insert(
+            Arc::from("larger_than".to_string()),
+            FieldValue::Int64(larger_than as i64),
+        );
     }
 
+    let mut name_filter = String::new();
+
     if let Some(contains) = &filter.name_contains {
-        query_str.push_str(&format!("name_contains(substring:\"{}\")\n", contains));
+        name_filter.push_str(r#"@filter(op: "has_substring", value: ["$name_substring"])"#);
+        name_filter.push('\n');
+        query_args.insert(Arc::from("name_substring".to_string()), contains.into());
     }
 
     if let Some(contains) = &filter.name_matches {
-        query_str.push_str(&format!("name_matches(regex:\"{}\")\n", contains));
+        name_filter.push_str(r#"@filter(op: "regex", value: ["$name_regex"])"#);
+        name_filter.push('\n');
+        query_args.insert(Arc::from("name_regex".to_string()), contains.into());
     }
 
     if let Some(contains) = &filter.name {
-        query_str.push_str(&format!("has_name(name:\"{}\")\n", contains));
+        name_filter.push_str(r#"@filter(op: "=", value: ["$name_eq"])"#);
+        name_filter.push('\n');
+        query_args.insert(Arc::from("name_eq".to_string()), contains.into());
     }
 
-    query_str.push_str("repo @output\ntag @output\nsize @output\ncreated @output\n");
+    query_str.push_str(&format!(
+        "name @output\n{name_filter}size @output\n{size_filter}created @output\n"
+    ));
 
     query_str.push_str("}}");
+    println!("{query_str}");
     let adapter = Arc::new(Adapter::new());
-    let query_args: BTreeMap<Arc<str>, trustfall::FieldValue> = BTreeMap::new();
 
     let vertices = execute_query(Adapter::schema(), adapter, &query_str, query_args).unwrap();
     let mut images = vertices
-        .filter(|x| x["repo"] != FieldValue::Null)
+        .filter(|x| x["name"] != FieldValue::Null)
         .map(|x| {
             (
-                format!(
-                    "{}:{}",
-                    x["repo"].as_str().unwrap(),
-                    x["tag"].as_str().unwrap()
-                ),
+                x["name"].as_str().unwrap().to_string(),
                 x["size"].as_u64().unwrap(),
             )
         })
@@ -206,7 +219,7 @@ mod tests {
         let query = r#"{
           Image {
             created_after(timestamp: "2025-06-01 00:00:00+00") 
-              created_before(timestamp: "2025-07-01 00:00:00+00") 
+            created_before(timestamp: "2025-07-01 00:00:00+00") 
                 repo @output
                 tag @output
                 size @output
