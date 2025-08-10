@@ -81,7 +81,6 @@ fn main() {
     ));
 
     query_str.push_str("}}");
-    println!("{query_str}");
     let adapter = Arc::new(Adapter::new());
 
     let vertices = execute_query(Adapter::schema(), adapter, &query_str, query_args).unwrap();
@@ -105,6 +104,9 @@ fn main() {
     }
 
     match args.command {
+        Commands::Print(_) => {
+            println!("{query_str}");
+        }
         Commands::Ls(_) => {
             list_images(images, max_name_len);
         }

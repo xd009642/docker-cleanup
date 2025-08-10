@@ -19,6 +19,8 @@ pub enum Commands {
     Rm(FilterOptions),
     /// Show total size
     Size(FilterOptions),
+    /// Print the trustfall query
+    Print(FilterOptions),
 }
 
 impl Commands {
@@ -27,6 +29,7 @@ impl Commands {
             Self::Ls(f) => f,
             Self::Rm(f) => f,
             Self::Size(f) => f,
+            Self::Print(f) => f,
         }
     }
 }
