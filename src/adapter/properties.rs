@@ -1,5 +1,4 @@
 use super::vertex::Vertex;
-use std::sync::Arc;
 use trustfall::{
     FieldValue,
     provider::{AsVertex, ContextIterator, ContextOutcomeIterator, DataContext, ResolveInfo},
@@ -12,10 +11,7 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
 ) -> ContextOutcomeIterator<'a, V, FieldValue> {
     let func = match property_name {
         "created" => |v: DataContext<V>| match v.active_vertex() {
-            Some(Vertex::Image(img)) => (
-                v.clone(),
-                FieldValue::String(Arc::from(img.created_at.to_string().as_str())),
-            ),
+            Some(Vertex::Image(img)) => (v.clone(), img.created_at.to_string().into()),
             None => (v, FieldValue::Null),
         },
         "repo" => |v: DataContext<V>| match v.active_vertex() {
@@ -23,7 +19,7 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
                 let value = if img.repository.is_empty() {
                     FieldValue::Null
                 } else {
-                    FieldValue::String(Arc::from(img.repository.as_str()))
+                    img.repository.as_str().into()
                 };
                 (v.clone(), value)
             }
@@ -31,10 +27,10 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
         },
         "tag" => |v: DataContext<V>| match v.active_vertex() {
             Some(Vertex::Image(img)) => {
-                let value = if img.tag.is_empty() {
+                let value = if img.tag.as_str().is_empty() {
                     FieldValue::Null
                 } else {
-                    FieldValue::String(Arc::from(img.tag.as_str()))
+                    img.tag.as_str().into()
                 };
                 (v.clone(), value)
             }
@@ -46,7 +42,7 @@ pub(super) fn resolve_image_property<'a, V: AsVertex<Vertex> + 'a>(
                     FieldValue::Null
                 } else {
                     if img.tag.is_empty() {
-                        FieldValue::String(Arc::from(img.repository.as_str()))
+                        img.repository.as_str().into()
                     } else {
                         let name = format!("{}:{}", img.repository, img.tag);
                         name.into()
